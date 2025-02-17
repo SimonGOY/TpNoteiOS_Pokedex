@@ -37,7 +37,7 @@ class PokemonAPI {
     
     func fetchPokemons() async throws -> [PokemonModel] {
         // 1. Récupérer la liste basique
-        let url = URL(string: "https://pokeapi.co/api/v2/pokemon?limit=151")!
+        let url = URL(string: "https://pokeapi.co/api/v2/pokemon?limit=1025")!
         let (data, _) = try await URLSession.shared.data(from: url)
         let basicList = try JSONDecoder().decode(PokemonListResponse.self, from: data)
         

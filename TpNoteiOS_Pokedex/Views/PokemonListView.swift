@@ -10,20 +10,63 @@ import SwiftUI
 
 struct PokemonListView: View {
     @State private var searchText = ""
+    @State private var sortOption = SortOption.id
+    @State private var selectedType: String? = nil
     @Environment(\.managedObjectContext) private var viewContext
     
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \PokemonEntity.id, ascending: true)]
-    ) private var pokemons: FetchedResults<PokemonEntity>
-    
-    // Filtrer les Pokémon en fonction du texte de recherche
-    private var filteredPokemons: [PokemonEntity] {
-        if searchText.isEmpty {
-            return Array(pokemons)
-        } else {
-            return pokemons.filter { pokemon in
-                pokemon.name?.localizedCaseInsensitiveContains(searchText) ?? false
+    // Définir les options de tri
+    enum SortOption {
+        case id, name
+        
+        var descriptor: NSSortDescriptor {
+            switch self {
+            case .id:
+                return NSSortDescriptor(keyPath: \PokemonEntity.id, ascending: true)
+            case .name:
+                return NSSortDescriptor(keyPath: \PokemonEntity.name, ascending: true)
             }
+        }
+    }
+    
+    @FetchRequest private var pokemons: FetchedResults<PokemonEntity>
+    
+    init() {
+        _pokemons = FetchRequest(
+            sortDescriptors: [SortOption.id.descriptor],
+            animation: .default)
+    }
+    
+    // Obtenir la liste unique des types
+    private var availableTypes: [String] {
+        let allTypes = pokemons.compactMap { pokemon -> [String]? in
+            pokemon.types as? [String]
+        }.flatMap { $0 }
+        return Array(Set(allTypes)).sorted()
+    }
+    
+    private var filteredPokemons: [PokemonEntity] {
+        let sorted = Array(pokemons).sorted { p1, p2 in
+                switch sortOption {
+                case .id:
+                    return p1.id < p2.id
+                case .name:
+                    return (p1.name ?? "") < (p2.name ?? "")
+                }
+            }
+        
+        return sorted.filter { pokemon in
+            let matchesSearch = searchText.isEmpty ||
+                (pokemon.name?.localizedCaseInsensitiveContains(searchText) ?? false)
+            
+            let matchesType: Bool
+            if let selectedType = selectedType,
+               let pokemonTypes = pokemon.types as? [String] {
+                matchesType = pokemonTypes.contains(selectedType)
+            } else {
+                matchesType = true
+            }
+            
+            return matchesSearch && matchesType
         }
     }
     
@@ -32,51 +75,86 @@ struct PokemonListView: View {
 
     var body: some View {
         NavigationView {
-            List {
-                ForEach(filteredPokemons, id: \.id) { pokemon in
-                    HStack {
-                        if let imageURL = pokemon.imageUrl,
-                           let url = URL(string: imageURL) {
-                            AsyncImage(url: url) { phase in
-                                switch phase {
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .scaledToFit() // Changement ici
-                                        .frame(width: 100, height: 100)
-                                        .clipped() // Ajout ici
-                                case .failure(_):
-                                    Image(systemName: "photo")
-                                        .frame(width: 100, height: 100)
-                                        .background(Color.gray.opacity(0.3))
-                                case .empty:
-                                    ProgressView()
-                                        .frame(width: 100, height: 100)
-                                @unknown default:
-                                    EmptyView()
-                                }
-                            }
-                        }
-                        
-                        VStack(alignment: .leading) {
-                            Text(pokemon.name ?? "Unknown")
-                                .font(.headline)
-                            if let types = pokemon.types as? [String] {
-                                Text(types.joined(separator: ", "))
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
+            VStack {
+                HStack {
+                    Picker("Trier par", selection: $sortOption) {
+                        Text("ID").tag(SortOption.id)
+                        Text("Nom").tag(SortOption.name)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    
+                    Picker("Type", selection: $selectedType) {
+                        Text("Tous").tag(nil as String?)
+                        ForEach(availableTypes, id: \.self) { type in
+                            Text(type.capitalizingFirstLetter()).tag(type as String?)
                         }
                     }
-                    .padding(.vertical, 8)
                 }
-            }
-            .navigationTitle("Pokédex")
-            .searchable(text: $searchText, prompt: "Chercher Pokémon...")
-            .toolbar {
-                Button("Refresh") {
-                    Task {
-                        await loadPokemons()
+                .padding()
+                
+                List {
+                    ForEach(filteredPokemons, id: \.id) { pokemon in
+                        HStack {
+                            if let imageURL = pokemon.imageUrl,
+                               let url = URL(string: imageURL) {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .interpolation(.medium)  // Ajout de l'interpolation
+                                            .aspectRatio(contentMode: .fit)  // Utilisation de aspectRatio au lieu de scaledToFit
+                                            .frame(width: 80, height: 80)  // Dimensions fixes et plus petites
+                                            .background(Color.white)  // Ajout d'un fond blanc
+                                    case .failure(_):
+                                        Image(systemName: "photo")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(width: 80, height: 80)
+                                            .background(Color.gray.opacity(0.3))
+                                    case .empty:
+                                        ProgressView()
+                                            .frame(width: 80, height: 80)
+                                    @unknown default:
+                                        EmptyView()
+                                            .frame(width: 80, height: 80)
+                                    }
+                                }
+                            } else {
+                                Image(systemName: "photo")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 80, height: 80)
+                                    .background(Color.gray.opacity(0.3))
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("#\(pokemon.id)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                Text(pokemon.name?.capitalizingFirstLetter() ?? "Unknown")
+                                    .font(.headline)
+                                
+                                if let types = pokemon.types as? [String] {
+                                    Text(types.map { $0.capitalizingFirstLetter() }.joined(separator: ", "))
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.leading, 8)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .listStyle(PlainListStyle())
+                .navigationTitle("Pokédex")
+                .searchable(text: $searchText, prompt: "Chercher Pokémon...")
+                .toolbar {
+                    Button("Refresh") {
+                        Task {
+                            await loadPokemons()
+                        }
                     }
                 }
             }
@@ -104,7 +182,6 @@ struct PokemonListView: View {
             
             await viewContext.perform {
                 for pokemon in pokemonsFromAPI {
-                    // Chercher si le Pokémon existe déjà
                     let fetchRequest: NSFetchRequest<PokemonEntity> = PokemonEntity.fetchRequest()
                     fetchRequest.predicate = NSPredicate(format: "id == %d", pokemon.id)
                     
@@ -113,15 +190,12 @@ struct PokemonListView: View {
                         let entity: PokemonEntity
                         
                         if let existingPokemon = results.first {
-                            // Mettre à jour le Pokémon existant
                             entity = existingPokemon
                         } else {
-                            // Créer un nouveau Pokémon
                             entity = PokemonEntity(context: viewContext)
                             entity.id = Int64(pokemon.id)
                         }
                         
-                        // Mettre à jour les données
                         entity.name = pokemon.name
                         entity.imageUrl = pokemon.imageURL
                         entity.types = pokemon.types as NSArray
@@ -138,27 +212,10 @@ struct PokemonListView: View {
     }
 }
 
-struct SearchBar: View {
-    @Binding var text: String
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(.gray)
-            
-            TextField("Search Pokémon...", text: $text)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .autocapitalization(.none)
-                .disableAutocorrection(true)
-            
-            if !text.isEmpty {
-                Button(action: {
-                    text = ""
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray)
-                }
-            }
-        }
+
+// Extension pour avoir la première lettre majuscule
+extension String {
+    func capitalizingFirstLetter() -> String {
+        return self.prefix(1).uppercased() + self.dropFirst().lowercased()
     }
 }
