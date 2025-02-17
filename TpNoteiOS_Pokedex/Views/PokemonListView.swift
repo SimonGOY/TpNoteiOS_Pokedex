@@ -9,11 +9,11 @@ import CoreData
 import SwiftUI
 
 struct PokemonListView: View {
-    @Environment(\.managedObjectContext) private var viewContext
     @State private var searchText = ""
-        
+    @Environment(\.managedObjectContext) private var viewContext
+    
     @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \PokemonEntity.name, ascending: true)]
+        sortDescriptors: [NSSortDescriptor(keyPath: \PokemonEntity.id, ascending: true)]
     ) private var pokemons: FetchedResults<PokemonEntity>
     
     // Filtrer les Pokémon en fonction du texte de recherche
@@ -32,69 +32,64 @@ struct PokemonListView: View {
 
     var body: some View {
         NavigationView {
-                    VStack {
-                        // Ajouter la barre de recherche
-                        SearchBar(text: $searchText)
-                            .padding(.horizontal)
+            List {
+                ForEach(filteredPokemons, id: \.id) { pokemon in
+                    HStack {
+                        if let imageURL = pokemon.imageUrl,
+                           let url = URL(string: imageURL) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 100, height: 100)
+                                case .failure(_):
+                                    Image(systemName: "photo")
+                                        .frame(width: 100, height: 100)
+                                case .empty:
+                                    ProgressView()
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                        }
                         
-                        List {
-                            ForEach(filteredPokemons, id: \.id) { pokemon in
-                                HStack {
-                                    if let imageURL = pokemon.imageUrl,
-                                       let url = URL(string: imageURL) {
-                                        AsyncImage(url: url) { phase in
-                                            switch phase {
-                                            case .success(let image):
-                                                image
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(width: 100, height: 100)
-                                            case .failure(_):
-                                                Image(systemName: "photo")
-                                                    .frame(width: 100, height: 100)
-                                            case .empty:
-                                                ProgressView()
-                                            @unknown default:
-                                                EmptyView()
-                                            }
-                                        }
-                                    }
-                                    
-                                    VStack(alignment: .leading) {
-                                        Text(pokemon.name ?? "Unknown")
-                                            .font(.headline)
-                                        if let types = pokemon.types as? String {
-                                            Text(types)
-                                                .font(.subheadline)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 8)
+                        VStack(alignment: .leading) {
+                            Text(pokemon.name ?? "Unknown")
+                                .font(.headline)
+                            if let types = pokemon.types as? String {
+                                Text(types)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
                         }
-                        .navigationTitle("Pokédex")
-                        .toolbar {
-                            Button("Refresh") {
-                                Task {
-                                    await loadPokemons()
-                                }
-                            }
-                        }
-                        .overlay(Group {
-                            if isLoading {
-                                ProgressView()
-                            }
-                        })
                     }
-                    .onAppear {
-                        if pokemons.isEmpty {
-                            Task {
-                                await loadPokemons()
-                            }
-                        }
+                    .padding(.vertical, 8)
+                }
+            }
+            .navigationTitle("Pokédex")
+            .searchable(text: $searchText, prompt: "Chercher Pokémon...")
+            .toolbar {
+                Button("Refresh") {
+                    Task {
+                        await loadPokemons()
                     }
                 }
+            }
+            .overlay(Group {
+                if isLoading {
+                    ProgressView()
+                }
+            })
+            .onAppear {
+                if pokemons.isEmpty {
+                    Task {
+                        await loadPokemons()
+                    }
+                }
+            }
+        }
     }
 
     private func loadPokemons() async {
