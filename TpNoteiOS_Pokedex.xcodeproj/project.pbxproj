@@ -16,6 +16,7 @@
 		2ED02EC02D632E4D00A18268 /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02EBF2D632E4D00A18268 /* CoreDataManager.swift */; };
 		2ED02EC82D6334D000A18268 /* Pokemon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02EC72D6334D000A18268 /* Pokemon.swift */; };
 		2ED02ECB2D63352500A18268 /* PokemonAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02ECA2D63352500A18268 /* PokemonAPI.swift */; };
+		2ED02ECE2D63406E00A18268 /* PokemonListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02ECD2D63406E00A18268 /* PokemonListView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,7 +29,8 @@
 		2ED02EB82D632D9800A18268 /* TpNoteiOS_Pokedex.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = TpNoteiOS_Pokedex.xcdatamodel; sourceTree = "<group>"; };
 		2ED02EBF2D632E4D00A18268 /* CoreDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataManager.swift; sourceTree = "<group>"; };
 		2ED02EC72D6334D000A18268 /* Pokemon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pokemon.swift; sourceTree = "<group>"; };
-		2ED02ECA2D63352500A18268 /* PokemonAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PokemonAPI.swift; path = TpNoteiOS_Pokedex/Models/PokemonAPI.swift; sourceTree = SOURCE_ROOT; };
+		2ED02ECA2D63352500A18268 /* PokemonAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PokemonAPI.swift; path = TpNoteiOS_Pokedex/Networking/PokemonAPI.swift; sourceTree = SOURCE_ROOT; };
+		2ED02ECD2D63406E00A18268 /* PokemonListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokemonListView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,11 +63,11 @@
 		2ED02EAB2D632D9700A18268 /* TpNoteiOS_Pokedex */ = {
 			isa = PBXGroup;
 			children = (
-				2ED02EC92D6334F100A18268 /* Network */,
+				2ED02ED02D63493200A18268 /* Networking */,
+				2ED02ECC2D63406100A18268 /* Views */,
 				2ED02EC62D6334C200A18268 /* Models */,
 				2ED02EC12D632EFA00A18268 /* CoreData */,
 				2ED02EAC2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift */,
-				2ED02EAE2D632D9700A18268 /* ContentView.swift */,
 				2ED02EB02D632D9800A18268 /* Assets.xcassets */,
 				2ED02EB72D632D9800A18268 /* TpNoteiOS_Pokedex.xcdatamodeld */,
 				2ED02EB22D632D9800A18268 /* Preview Content */,
@@ -98,12 +100,21 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
-		2ED02EC92D6334F100A18268 /* Network */ = {
+		2ED02ECC2D63406100A18268 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				2ED02EAE2D632D9700A18268 /* ContentView.swift */,
+				2ED02ECD2D63406E00A18268 /* PokemonListView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		2ED02ED02D63493200A18268 /* Networking */ = {
 			isa = PBXGroup;
 			children = (
 				2ED02ECA2D63352500A18268 /* PokemonAPI.swift */,
 			);
-			path = Network;
+			path = Networking;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -176,6 +187,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2ED02ECE2D63406E00A18268 /* PokemonListView.swift in Sources */,
 				2ED02EC82D6334D000A18268 /* Pokemon.swift in Sources */,
 				2ED02EB62D632D9800A18268 /* Persistence.swift in Sources */,
 				2ED02EAF2D632D9700A18268 /* ContentView.swift in Sources */,

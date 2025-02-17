@@ -7,111 +7,85 @@
 
 import Foundation
 
+// Structures pour la réponse initiale
+struct PokemonListResponse: Codable {
+    let results: [PokemonBasicInfo]
+}
+
+struct PokemonBasicInfo: Codable {
+    let name: String
+    let url: String
+}
+
+// Structure pour le modèle final
+struct PokemonModel: Identifiable, Codable {
+    let id: Int
+    let name: String
+    let imageURL: String?
+    let types: [String]
+    
+    init(id: Int, name: String, imageURL: String?, types: [String]) {
+        self.id = id
+        self.name = name
+        self.imageURL = imageURL
+        self.types = types
+    }
+}
+
 class PokemonAPI {
     static let shared = PokemonAPI()
-
-    // Fonction pour récupérer tous les Pokémon
+    
     func fetchPokemons() async throws -> [PokemonModel] {
-        // URL pour récupérer la liste des Pokémon (nom + URL)
-        let url = URL(string: "https://pokeapi.co/api/v2/pokemon?limit=20")!
+        // 1. Récupérer la liste basique
+        let url = URL(string: "https://pokeapi.co/api/v2/pokemon?limit=151")!
         let (data, _) = try await URLSession.shared.data(from: url)
-        let pokemonResponse = try JSONDecoder().decode(PokemonListResponse.self, from: data)
+        let basicList = try JSONDecoder().decode(PokemonListResponse.self, from: data)
         
-        // Récupérer les détails pour chaque Pokémon dans la liste
-        var pokemonsWithDetails: [PokemonModel] = []
+        // 2. Récupérer les détails pour chaque Pokémon
+        var detailedPokemons: [PokemonModel] = []
         
-        // Parcours de chaque Pokémon pour récupérer ses détails
-        for pokemon in pokemonResponse.results {
-            do {
-                let detailedPokemon = try await fetchPokemonDetails(for: pokemon)
-                pokemonsWithDetails.append(detailedPokemon)
-            } catch {
-                print("Error fetching details for \(pokemon.name): \(error)")
+        for basicInfo in basicList.results {
+            if let detailedPokemon = try? await fetchPokemonDetails(from: basicInfo.url) {
+                detailedPokemons.append(detailedPokemon)
             }
         }
         
-        return pokemonsWithDetails
+        return detailedPokemons
     }
-
-    // Fonction pour récupérer les détails d'un Pokémon
-    func fetchPokemonDetails(for pokemon: PokemonModel) async throws -> PokemonModel {
-        var updatedPokemon = pokemon
-        let url = URL(string: pokemon.url)!
-        let (data, _) = try await URLSession.shared.data(from: url)
-        let decoded = try JSONDecoder().decode(PokemonDetails.self, from: data)
+    
+    private func fetchPokemonDetails(from url: String) async throws -> PokemonModel {
+        guard let detailURL = URL(string: url) else {
+            throw URLError(.badURL)
+        }
         
-        // Mise à jour de l'image
-        updatedPokemon.imageURL = decoded.sprites.front_default
+        let (data, _) = try await URLSession.shared.data(from: detailURL)
+        let details = try JSONDecoder().decode(PokemonDetails.self, from: data)
         
-        // Mise à jour des types (si présents)
-        updatedPokemon.types = decoded.types?.map { $0.type.name } ?? []
-
-        return updatedPokemon
+        return PokemonModel(
+            id: details.id,
+            name: details.name,
+            imageURL: details.sprites.front_default,
+            types: details.types.map { $0.type.name }
+        )
     }
 }
 
-// MARK: - Structures pour la réponse JSON
-
-// Structure pour récupérer la liste des Pokémon (nom + URL)
-struct PokemonListResponse: Codable {
-    let results: [PokemonModel] // Cela fait référence à la structure PokemonModel
-}
-
-// Structure pour récupérer les détails d'un Pokémon (image, types, statistiques, etc.)
+// Structure pour les détails d'un Pokémon
 struct PokemonDetails: Codable {
+    let id: Int
+    let name: String
     let sprites: Sprites
-    let types: [TypeEntry]?
-    let stats: [StatEntry]
+    let types: [TypeEntry]
 }
 
-// Structure pour l'image d'un Pokémon
 struct Sprites: Codable {
     let front_default: String
 }
 
-// Structure pour les types d'un Pokémon
 struct TypeEntry: Codable {
     let type: TypeInfo
 }
 
-// Structure contenant l'information du type (nom du type)
 struct TypeInfo: Codable {
     let name: String
-}
-
-// Structure pour les statistiques de base d'un Pokémon
-struct StatEntry: Codable {
-    let base_stat: Int
-    let stat: StatInfo
-}
-
-// Structure contenant l'information sur le nom d'une statistique (ex. "hp", "attack")
-struct StatInfo: Codable {
-    let name: String
-}
-
-// Structure pour chaque Pokémon de la liste
-struct PokemonModel: Identifiable, Codable {
-    var id: Int? {
-        // Extraction de l'ID depuis l'URL
-        guard let idString = url.split(separator: "/").last,
-              let id = Int(idString) else {
-            return nil
-        }
-        return id
-    }
-    var name: String
-    var url: String
-    var imageURL: String?
-    var types: [String] = []
-}
-
-extension Pokemon {
-    init(from model: PokemonModel) {
-        self.id = model.id ?? 0
-        self.name = model.name
-        self.imageUrl = model.imageURL ?? ""  // Utiliser "" si l'image est nil
-        self.types = model.types
-        self.stats = [:] // Placeholder pour les stats, tu peux les mettre à jour plus tard
-    }
 }
