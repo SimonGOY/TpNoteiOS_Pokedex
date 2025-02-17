@@ -12,11 +12,13 @@ struct PokemonListView: View {
     @State private var searchText = ""
     @State private var sortOption = SortOption.id
     @State private var selectedType: String? = nil
+    @State private var showDetail = false
+    @State private var selectedPokemon: PokemonEntity?
     @Environment(\.managedObjectContext) private var viewContext
     
     // Définir les options de tri
     enum SortOption {
-        case id, name
+        case id, name, favorites
         
         var descriptor: NSSortDescriptor {
             switch self {
@@ -24,6 +26,8 @@ struct PokemonListView: View {
                 return NSSortDescriptor(keyPath: \PokemonEntity.id, ascending: true)
             case .name:
                 return NSSortDescriptor(keyPath: \PokemonEntity.name, ascending: true)
+            case .favorites:
+                return NSSortDescriptor(keyPath: \PokemonEntity.isFavorite, ascending: false)
             }
         }
     }
@@ -46,13 +50,18 @@ struct PokemonListView: View {
     
     private var filteredPokemons: [PokemonEntity] {
         let sorted = Array(pokemons).sorted { p1, p2 in
-                switch sortOption {
-                case .id:
-                    return p1.id < p2.id
-                case .name:
-                    return (p1.name ?? "") < (p2.name ?? "")
+            switch sortOption {
+            case .id:
+                return p1.id < p2.id
+            case .name:
+                return (p1.name ?? "") < (p2.name ?? "")
+            case .favorites:
+                if p1.isFavorite != p2.isFavorite {
+                    return p1.isFavorite && !p2.isFavorite
                 }
+                return p1.id < p2.id
             }
+        }
         
         return sorted.filter { pokemon in
             let matchesSearch = searchText.isEmpty ||
@@ -77,75 +86,142 @@ struct PokemonListView: View {
         NavigationView {
             VStack {
                 HStack {
+                    // Picker de tri
                     Picker("Trier par", selection: $sortOption) {
                         Text("ID").tag(SortOption.id)
                         Text("Nom").tag(SortOption.name)
+                        Text("Favoris").tag(SortOption.favorites)
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     
-                    Picker("Type", selection: $selectedType) {
-                        Text("Tous").tag(nil as String?)
-                        ForEach(availableTypes, id: \.self) { type in
-                            Text(type.capitalizingFirstLetter()).tag(type as String?)
+                    // Menu pour les types
+                    Menu {
+                        Button {
+                            selectedType = nil
+                        } label: {
+                            HStack {
+                                Text("Tous les types")
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(10)
+                                
+                                if selectedType == nil {
+                                    Image(systemName: "checkmark")
+                                }
+                            }
                         }
+                        
+                        ForEach(availableTypes, id: \.self) { type in
+                            Button {
+                                selectedType = type
+                            } label: {
+                                HStack {
+                                    Text(type.capitalizingFirstLetter())
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 4)
+                                        .background(type.typeColor)
+                                        .cornerRadius(10)
+                                    
+                                    if selectedType == type {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(type.typeColor)
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "tag.fill")
+                            Text(selectedType?.capitalizingFirstLetter() ?? "Tous les types")
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(selectedType?.typeColor ?? Color.gray.opacity(0.2))
+                        .cornerRadius(10)
                     }
                 }
                 .padding()
                 
                 List {
                     ForEach(filteredPokemons, id: \.id) { pokemon in
-                        HStack {
-                            if let imageURL = pokemon.imageUrl,
-                               let url = URL(string: imageURL) {
-                                AsyncImage(url: url) { phase in
-                                    switch phase {
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .interpolation(.medium)  // Ajout de l'interpolation
-                                            .aspectRatio(contentMode: .fit)  // Utilisation de aspectRatio au lieu de scaledToFit
-                                            .frame(width: 80, height: 80)  // Dimensions fixes et plus petites
-                                            .background(Color.white)  // Ajout d'un fond blanc
-                                    case .failure(_):
-                                        Image(systemName: "photo")
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(width: 80, height: 80)
-                                            .background(Color.gray.opacity(0.3))
-                                    case .empty:
-                                        ProgressView()
-                                            .frame(width: 80, height: 80)
-                                    @unknown default:
-                                        EmptyView()
-                                            .frame(width: 80, height: 80)
+                        Button {
+                            selectedPokemon = pokemon  // Ceci déclenchera la sheet
+                        } label: {
+                            HStack {
+                                if let imageURL = pokemon.imageUrl,
+                                   let url = URL(string: imageURL) {
+                                    AsyncImage(url: url) { phase in
+                                        switch phase {
+                                        case .success(let image):
+                                            image
+                                                .resizable()
+                                                .interpolation(.medium)  // Ajout de l'interpolation
+                                                .aspectRatio(contentMode: .fit)  // Utilisation de aspectRatio au lieu de scaledToFit
+                                                .frame(width: 80, height: 80)  // Dimensions fixes et plus petites
+                                                .background(Color.white)  // Ajout d'un fond blanc
+                                        case .failure(_):
+                                            Image(systemName: "photo")
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fit)
+                                                .frame(width: 80, height: 80)
+                                                .background(Color.gray.opacity(0.3))
+                                        case .empty:
+                                            ProgressView()
+                                                .frame(width: 80, height: 80)
+                                        @unknown default:
+                                            EmptyView()
+                                                .frame(width: 80, height: 80)
+                                        }
+                                    }
+                                } else {
+                                    Image(systemName: "photo")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 80, height: 80)
+                                        .background(Color.gray.opacity(0.3))
+                                }
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("#\(pokemon.id)")
+                                            .font(.subheadline)
+                                            .foregroundColor(.gray)
+                                        
+                                        if pokemon.isFavorite {
+                                            Image(systemName: "star.fill")
+                                                .foregroundColor(.yellow)
+                                        }
+                                    }
+                                    
+                                    Text(pokemon.name?.capitalizingFirstLetter() ?? "Unknown")
+                                        .font(.headline)
+                                    
+                                    if let types = pokemon.types as? [String] {
+                                        HStack {
+                                            ForEach(types, id: \.self) { type in
+                                                Text(type.capitalizingFirstLetter())
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 10)
+                                                    .padding(.vertical, 4)
+                                                    .background(type.typeColor)
+                                                    .cornerRadius(10)
+                                            }
+                                        }
                                     }
                                 }
-                            } else {
-                                Image(systemName: "photo")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 80, height: 80)
-                                    .background(Color.gray.opacity(0.3))
+                                .padding(.leading, 8)
                             }
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("#\(pokemon.id)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                
-                                Text(pokemon.name?.capitalizingFirstLetter() ?? "Unknown")
-                                    .font(.headline)
-                                
-                                if let types = pokemon.types as? [String] {
-                                    Text(types.map { $0.capitalizingFirstLetter() }.joined(separator: ", "))
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding(.leading, 8)
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
                     }
+                }
+                .sheet(item: $selectedPokemon) { pokemon in
+                    PokemonDetailView(pokemon: pokemon)
                 }
                 .listStyle(PlainListStyle())
                 .navigationTitle("Pokédex")

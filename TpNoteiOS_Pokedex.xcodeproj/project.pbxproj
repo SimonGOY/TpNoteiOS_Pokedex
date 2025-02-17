@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2E4F45FA2D637ECC00896709 /* PokemonDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E4F45F92D637ECC00896709 /* PokemonDetailView.swift */; };
 		2ED02EAD2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02EAC2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift */; };
 		2ED02EAF2D632D9700A18268 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02EAE2D632D9700A18268 /* ContentView.swift */; };
 		2ED02EB12D632D9800A18268 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2ED02EB02D632D9800A18268 /* Assets.xcassets */; };
@@ -20,6 +21,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2E4F45F92D637ECC00896709 /* PokemonDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokemonDetailView.swift; sourceTree = "<group>"; };
 		2ED02EA92D632D9700A18268 /* TpNoteiOS_Pokedex.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TpNoteiOS_Pokedex.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2ED02EAC2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TpNoteiOS_PokedexApp.swift; sourceTree = "<group>"; };
 		2ED02EAE2D632D9700A18268 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -105,6 +107,7 @@
 			children = (
 				2ED02EAE2D632D9700A18268 /* ContentView.swift */,
 				2ED02ECD2D63406E00A18268 /* PokemonListView.swift */,
+				2E4F45F92D637ECC00896709 /* PokemonDetailView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -189,6 +192,7 @@
 			files = (
 				2ED02ECE2D63406E00A18268 /* PokemonListView.swift in Sources */,
 				2ED02EC82D6334D000A18268 /* Pokemon.swift in Sources */,
+				2E4F45FA2D637ECC00896709 /* PokemonDetailView.swift in Sources */,
 				2ED02EB62D632D9800A18268 /* Persistence.swift in Sources */,
 				2ED02EAF2D632D9700A18268 /* ContentView.swift in Sources */,
 				2ED02ECB2D63352500A18268 /* PokemonAPI.swift in Sources */,
