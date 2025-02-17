@@ -18,7 +18,7 @@ struct PersistenceController {
             pokemon.name = "Pikachu"
             pokemon.id = 1
             pokemon.imageUrl = "https://pokeapi.co/media/sprites/pokemon/1.png"
-            pokemon.types = ["Electric"] as NSObject
+            pokemon.types = ["Electric"] as NSArray
             pokemon.stats = ["speed": 100] as NSObject
         }
         do {

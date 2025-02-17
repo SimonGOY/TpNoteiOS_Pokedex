@@ -42,13 +42,16 @@ struct PokemonListView: View {
                                 case .success(let image):
                                     image
                                         .resizable()
-                                        .aspectRatio(contentMode: .fit)
+                                        .scaledToFit() // Changement ici
                                         .frame(width: 100, height: 100)
+                                        .clipped() // Ajout ici
                                 case .failure(_):
                                     Image(systemName: "photo")
                                         .frame(width: 100, height: 100)
+                                        .background(Color.gray.opacity(0.3))
                                 case .empty:
                                     ProgressView()
+                                        .frame(width: 100, height: 100)
                                 @unknown default:
                                     EmptyView()
                                 }
@@ -58,8 +61,8 @@ struct PokemonListView: View {
                         VStack(alignment: .leading) {
                             Text(pokemon.name ?? "Unknown")
                                 .font(.headline)
-                            if let types = pokemon.types as? String {
-                                Text(types)
+                            if let types = pokemon.types as? [String] {
+                                Text(types.joined(separator: ", "))
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
@@ -121,7 +124,7 @@ struct PokemonListView: View {
                         // Mettre à jour les données
                         entity.name = pokemon.name
                         entity.imageUrl = pokemon.imageURL
-                        entity.types = pokemon.types.joined(separator: ", ") as NSString
+                        entity.types = pokemon.types as NSArray
                     } catch {
                         print("Error updating pokemon \(pokemon.id): \(error)")
                     }

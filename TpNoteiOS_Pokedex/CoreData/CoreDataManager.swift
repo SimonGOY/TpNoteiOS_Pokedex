@@ -7,6 +7,13 @@
 
 import CoreData
 
+extension NSArray {
+    @objc(_bridgeToObjectiveC)
+    public func _bridgeToObjectiveC() -> NSArray {
+        return self
+    }
+}
+
 class CoreDataManager {
     static let shared = CoreDataManager()
     private let context = PersistenceController.shared.container.viewContext
@@ -46,7 +53,7 @@ class CoreDataManager {
         entity.id = Int64(pokemon.id)
         entity.name = pokemon.name
         entity.imageUrl = pokemon.imageUrl
-        entity.types = pokemon.types as NSObject
+        entity.types = pokemon.types as NSArray
         entity.stats = [:] as NSObject // Placeholder pour les stats
     }
     
@@ -54,7 +61,7 @@ class CoreDataManager {
     private func updatePokemonEntity(_ existingPokemon: PokemonEntity, with pokemon: Pokemon) {
         existingPokemon.name = pokemon.name
         existingPokemon.imageUrl = pokemon.imageUrl
-        existingPokemon.types = pokemon.types as NSObject
+        existingPokemon.types = pokemon.types as NSArray
         existingPokemon.stats = [:] as NSObject // Placeholder pour les stats
     }
     
