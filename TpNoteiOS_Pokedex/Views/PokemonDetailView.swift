@@ -1,17 +1,22 @@
-//
-//  PokemonDetailView.swift
-//  TpNoteiOS_Pokedex
-//
-//  Created by Simon GOY on 2/17/25.
-//
+    //
+    //  PokemonDetailView.swift
+    //  TpNoteiOS_Pokedex
+    //
+    //  Created by Simon GOY on 2/17/25.
+    //
 
-import SwiftUI
+    import SwiftUI
 
 struct PokemonDetailView: View {
     let pokemon: PokemonEntity
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isFavorite: Bool
+    @State private var isEnlarged = false
+    @State private var appearAnimation = false
+    @State private var rotationAngle = 360.0
+    @State private var slideAnimation = false
+    @State private var isLeaving = false
     
     init(pokemon: PokemonEntity) {
         self.pokemon = pokemon
@@ -30,32 +35,23 @@ struct PokemonDetailView: View {
     }
     
     private func getStatValue(_ statName: String) -> Int {
-        // Pour déboguer
-        print("Checking stats for \(statName)")
-        
         if let statsObject = pokemon.stats {
-            // Convertir explicitement en Dictionary
             let statsDict = statsObject as? [String: Any]
-            print("Stats dict: \(String(describing: statsDict))")
-            
             if let value = statsDict?[statName] as? Int {
                 return value
             }
-            
-            // Essayer la conversion en nombre si nécessaire
             if let value = statsDict?[statName] as? NSNumber {
                 return value.intValue
             }
         }
-        
         return 0
     }
+    
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Image du Pokémon avec animation
                     if let imageURL = pokemon.imageUrl,
                        let url = URL(string: imageURL) {
                         AsyncImage(url: url) { phase in
@@ -65,9 +61,20 @@ struct PokemonDetailView: View {
                                     .resizable()
                                     .interpolation(.medium)
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(height: 200)
+                                    .frame(height: isEnlarged ? 300 : 200)
                                     .background(Color.white)
-                                    .animation(.spring(), value: image)
+                                    .scaleEffect(isEnlarged ? 1.2 : 1)
+                                    .rotationEffect(.degrees(appearAnimation ? 0 : 360))
+                                    .offset(x: !slideAnimation ? UIScreen.main.bounds.width :
+                                              isLeaving ? -UIScreen.main.bounds.width : 0)
+                                    .animation(.spring(response: 0.7, dampingFraction: 0.6), value: appearAnimation)
+                                    .animation(.easeInOut(duration: 0.7), value: slideAnimation)
+                                    .animation(.easeInOut(duration: 0.5), value: isLeaving)
+                                    .onTapGesture {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                                            isEnlarged.toggle()
+                                        }
+                                    }
                             case .failure(_):
                                 Image(systemName: "photo")
                                     .resizable()
@@ -81,7 +88,7 @@ struct PokemonDetailView: View {
                         }
                     }
                     
-                    // Types
+                    // Types with animation
                     if let types = pokemon.types as? [String] {
                         HStack {
                             ForEach(types, id: \.self) { type in
@@ -95,9 +102,11 @@ struct PokemonDetailView: View {
                             }
                         }
                         .padding(.top)
+                        .opacity(slideAnimation ? 1 : 0)
+                        .offset(y: slideAnimation ? 0 : 50)
                     }
                     
-                    // Stats
+                    // Stats with animation
                     VStack(alignment: .leading, spacing: 15) {
                         Text("Statistiques")
                             .font(.title2)
@@ -105,13 +114,16 @@ struct PokemonDetailView: View {
                             .padding(.bottom, 5)
                         
                         StatRow(label: "Numéro pokédex", value: Int(pokemon.id))
-                        StatBarRow(label: "HP", value: getStatValue("hp"), maxValue: 255)
-                        StatBarRow(label: "Attaque", value: getStatValue("attack"), maxValue: 255)
-                        StatBarRow(label: "Défense", value: getStatValue("defense"), maxValue: 255)
-                        StatBarRow(label: "Attaque Spéciale", value: getStatValue("special-attack"), maxValue: 255)
-                        StatBarRow(label: "Défense Spéciale", value: getStatValue("special-defense"), maxValue: 255)
-                        StatBarRow(label: "Vitesse", value: getStatValue("speed"), maxValue: 255)
-                        	
+                        Group {
+                            StatBarRow(label: "HP", value: getStatValue("hp"), maxValue: 255)
+                            StatBarRow(label: "Attaque", value: getStatValue("attack"), maxValue: 255)
+                            StatBarRow(label: "Défense", value: getStatValue("defense"), maxValue: 255)
+                            StatBarRow(label: "Attaque Spéciale", value: getStatValue("special-attack"), maxValue: 255)
+                            StatBarRow(label: "Défense Spéciale", value: getStatValue("special-defense"), maxValue: 255)
+                            StatBarRow(label: "Vitesse", value: getStatValue("speed"), maxValue: 255)
+                        }
+                        .opacity(slideAnimation ? 1 : 0)
+                        .offset(y: slideAnimation ? 0 : 50)
                     }
                     .padding()
                     .background(Color.gray.opacity(0.1))
@@ -124,7 +136,13 @@ struct PokemonDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Fermer") {
-                        dismiss()
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            isLeaving = true
+                            // Supprimez cette ligne : slideAnimation = false
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            dismiss()
+                        }
                     }
                 }
                 
@@ -134,6 +152,17 @@ struct PokemonDetailView: View {
                     } label: {
                         Image(systemName: isFavorite ? "star.fill" : "star")
                             .foregroundColor(isFavorite ? .yellow : .gray)
+                    }
+                }
+            }
+            .onAppear {
+                // Déclencher les animations avec un léger délai
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        appearAnimation = true
+                    }
+                    withAnimation(.easeInOut(duration: 0.7)) {
+                        slideAnimation = true
                     }
                 }
             }

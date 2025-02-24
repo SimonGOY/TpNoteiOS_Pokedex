@@ -224,6 +224,9 @@ struct PokemonListView: View {
                 }
                 .sheet(item: $selectedPokemon) { pokemon in
                     PokemonDetailView(pokemon: pokemon)
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                        .interactiveDismissDisabled(false)
                 }
                 .listStyle(PlainListStyle())
                 .navigationTitle("Pokédex")
