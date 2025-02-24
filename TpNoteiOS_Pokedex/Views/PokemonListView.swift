@@ -9,14 +9,23 @@ import CoreData
 import SwiftUI
 
 struct PokemonListView: View {
+    // MARK: - Properties
     @State private var searchText = ""
     @State private var sortOption = SortOption.id
     @State private var selectedType: String? = nil
     @State private var showDetail = false
     @State private var selectedPokemon: PokemonEntity?
+    @State private var previousSortOption = SortOption.id
+    @State private var animateList = false
+    @State private var filterMenuOffset: CGFloat = 0
+    @State private var isLoading = false
+    @State private var cardScale: CGFloat = 0.8
+    @State private var isFilterVisible = false
     @Environment(\.managedObjectContext) private var viewContext
     
-    // Définir les options de tri
+    private let api = PokemonAPI.shared
+    
+    // MARK: - Enum
     enum SortOption {
         case id, name, favorites
         
@@ -32,6 +41,7 @@ struct PokemonListView: View {
         }
     }
     
+    // MARK: - FetchRequest
     @FetchRequest private var pokemons: FetchedResults<PokemonEntity>
     
     init() {
@@ -40,7 +50,7 @@ struct PokemonListView: View {
             animation: .default)
     }
     
-    // Obtenir la liste unique des types
+    // MARK: - Computed Properties
     private var availableTypes: [String] {
         let allTypes = pokemons.compactMap { pokemon -> [String]? in
             pokemon.types as? [String]
@@ -56,16 +66,14 @@ struct PokemonListView: View {
             case .name:
                 return (p1.name ?? "") < (p2.name ?? "")
             case .favorites:
-                return p1.id < p2.id  // Si on montre que les favoris, pas besoin de trier par favori
+                return p1.id < p2.id
             }
         }
         
         return sorted.filter { pokemon in
-            // Filtre de recherche
             let matchesSearch = searchText.isEmpty ||
                 (pokemon.name?.localizedCaseInsensitiveContains(searchText) ?? false)
             
-            // Filtre de type
             let matchesType: Bool
             if let selectedType = selectedType,
                let pokemonTypes = pokemon.types as? [String] {
@@ -74,186 +82,13 @@ struct PokemonListView: View {
                 matchesType = true
             }
             
-            // Filtre des favoris
             let matchesFavorites = sortOption == .favorites ? pokemon.isFavorite : true
             
             return matchesSearch && matchesType && matchesFavorites
         }
     }
     
-    @State private var isLoading = false
-    private let api = PokemonAPI.shared
-
-    var body: some View {
-        NavigationView {
-            VStack {
-                HStack {
-                    // Picker de tri
-                    Picker("Trier par", selection: $sortOption) {
-                        Text("ID").tag(SortOption.id)
-                        Text("Nom").tag(SortOption.name)
-                        Text("Favoris").tag(SortOption.favorites)
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    
-                    // Menu pour les types
-                    Menu {
-                        Button {
-                            selectedType = nil
-                        } label: {
-                            HStack {
-                                Text("Tous les types")
-                                    .foregroundColor(.primary)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
-                                    .background(Color.gray.opacity(0.2))
-                                    .cornerRadius(10)
-                                
-                                if selectedType == nil {
-                                    Image(systemName: "checkmark")
-                                }
-                            }
-                        }
-                        
-                        ForEach(availableTypes, id: \.self) { type in
-                            Button {
-                                selectedType = type
-                            } label: {
-                                HStack {
-                                    Text(type.capitalizingFirstLetter())
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 4)
-                                        .background(type.typeColor)
-                                        .cornerRadius(10)
-                                    
-                                    if selectedType == type {
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(type.typeColor)
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: "tag.fill")
-                            Text(selectedType?.capitalizingFirstLetter() ?? "Tous les types")
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(selectedType?.typeColor ?? Color.gray.opacity(0.2))
-                        .cornerRadius(10)
-                    }
-                }
-                .padding()
-                
-                List {
-                    ForEach(filteredPokemons, id: \.id) { pokemon in
-                        Button {
-                            selectedPokemon = pokemon  // Ceci déclenchera la sheet
-                        } label: {
-                            HStack {
-                                if let imageURL = pokemon.imageUrl,
-                                   let url = URL(string: imageURL) {
-                                    AsyncImage(url: url) { phase in
-                                        switch phase {
-                                        case .success(let image):
-                                            image
-                                                .resizable()
-                                                .interpolation(.medium)  // Ajout de l'interpolation
-                                                .aspectRatio(contentMode: .fit)  // Utilisation de aspectRatio au lieu de scaledToFit
-                                                .frame(width: 80, height: 80)  // Dimensions fixes et plus petites
-                                                .background(Color.white)  // Ajout d'un fond blanc
-                                        case .failure(_):
-                                            Image(systemName: "photo")
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: 80, height: 80)
-                                                .background(Color.gray.opacity(0.3))
-                                        case .empty:
-                                            ProgressView()
-                                                .frame(width: 80, height: 80)
-                                        @unknown default:
-                                            EmptyView()
-                                                .frame(width: 80, height: 80)
-                                        }
-                                    }
-                                } else {
-                                    Image(systemName: "photo")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 80, height: 80)
-                                        .background(Color.gray.opacity(0.3))
-                                }
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text("#\(pokemon.id)")
-                                            .font(.subheadline)
-                                            .foregroundColor(.gray)
-                                        
-                                        if pokemon.isFavorite {
-                                            Image(systemName: "star.fill")
-                                                .foregroundColor(.yellow)
-                                        }
-                                    }
-                                    
-                                    Text(pokemon.name?.capitalizingFirstLetter() ?? "Unknown")
-                                        .font(.headline)
-                                    
-                                    if let types = pokemon.types as? [String] {
-                                        HStack {
-                                            ForEach(types, id: \.self) { type in
-                                                Text(type.capitalizingFirstLetter())
-                                                    .font(.subheadline)
-                                                    .foregroundColor(.white)
-                                                    .padding(.horizontal, 10)
-                                                    .padding(.vertical, 4)
-                                                    .background(type.typeColor)
-                                                    .cornerRadius(10)
-                                            }
-                                        }
-                                    }
-                                }
-                                .padding(.leading, 8)
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
-                }
-                .sheet(item: $selectedPokemon) { pokemon in
-                    PokemonDetailView(pokemon: pokemon)
-                        .presentationDetents([.large])
-                        .presentationDragIndicator(.visible)
-                        .interactiveDismissDisabled(false)
-                }
-                .listStyle(PlainListStyle())
-                .navigationTitle("Pokédex")
-                .searchable(text: $searchText, prompt: "Chercher Pokémon...")
-                .toolbar {
-                    Button("Refresh") {
-                        Task {
-                            await loadPokemons()
-                        }
-                    }
-                }
-            }
-            .overlay(Group {
-                if isLoading {
-                    ProgressView()
-                }
-            })
-            .onAppear {
-                if pokemons.isEmpty {
-                    Task {
-                        await loadPokemons()
-                    }
-                }
-            }
-        }
-    }
-
+    // MARK: - Private Methods
     private func loadPokemons() async {
         isLoading = true
         defer { isLoading = false }
@@ -292,12 +127,228 @@ struct PokemonListView: View {
             print("Error loading pokemons: \(error)")
         }
     }
+    
+    // MARK: - Body
+    var body: some View {
+        NavigationView {
+            VStack {
+                // Animated Filter Section
+                VStack {
+                    HStack {
+                        Picker("Trier par", selection: $sortOption.animation()) {
+                            Text("ID").tag(SortOption.id)
+                            Text("Nom").tag(SortOption.name)
+                            Text("Favoris").tag(SortOption.favorites)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .transition(.move(edge: .top))
+                        
+                        // Type Filter Menu
+                        Menu {
+                            Button {
+                                withAnimation(.spring()) {
+                                    selectedType = nil
+                                }
+                            } label: {
+                                HStack {
+                                    Text("Tous les types")
+                                        .foregroundColor(.primary)
+                                    if selectedType == nil {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                            
+                            ForEach(availableTypes, id: \.self) { type in
+                                Button {
+                                    withAnimation(.spring()) {
+                                        selectedType = type
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(type.capitalizingFirstLetter())
+                                            .foregroundColor(.white)
+                                        if selectedType == type {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "tag.fill")
+                                Text(selectedType?.capitalizingFirstLetter() ?? "Tous les types")
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(selectedType?.typeColor ?? Color.gray.opacity(0.2))
+                            .cornerRadius(10)
+                            .scaleEffect(cardScale)
+                            .onAppear {
+                                withAnimation(.spring()) {
+                                    cardScale = 1.0
+                                }
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                    .shadow(radius: 5)
+                    .padding(.horizontal)
+                    .offset(y: filterMenuOffset)
+                    .onAppear {
+                        withAnimation(.spring()) {
+                            filterMenuOffset = 0
+                            isFilterVisible = true
+                        }
+                    }
+                }
+                
+                // Animated Pokemon List
+                List {
+                    ForEach(filteredPokemons, id: \.id) { pokemon in
+                        Button {
+                            selectedPokemon = pokemon
+                        } label: {
+                            PokemonRow(pokemon: pokemon)
+                                .opacity(animateList ? 1 : 0)
+                                .offset(x: animateList ? 0 : -50)
+                                .animation(.spring().delay(Double(filteredPokemons.firstIndex(of: pokemon) ?? 0) * 0.05),
+                                         value: animateList)
+                        }
+                    }
+                }
+                .listStyle(PlainListStyle())
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+                .searchable(text: $searchText.animation(), prompt: "Chercher Pokémon...")
+                .onChange(of: sortOption) { newValue in
+                    withAnimation(.spring()) {
+                        animateList = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            withAnimation(.spring()) {
+                                animateList = true
+                            }
+                        }
+                    }
+                }
+                .onChange(of: selectedType) { _ in
+                    withAnimation(.spring()) {
+                        animateList = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            withAnimation(.spring()) {
+                                animateList = true
+                            }
+                        }
+                    }
+                }
+                .onAppear {
+                    withAnimation(.spring().delay(0.3)) {
+                        animateList = true
+                    }
+                }
+            }
+            .navigationTitle("Pokédex")
+            .toolbar {
+                Button("Refresh") {
+                    Task {
+                        await loadPokemons()
+                    }
+                }
+            }
+            .sheet(item: $selectedPokemon) { pokemon in
+                PokemonDetailView(pokemon: pokemon)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+                    .interactiveDismissDisabled(false)
+            }
+            .overlay(Group {
+                if isLoading {
+                    ProgressView()
+                }
+            })
+        }
+    }
 }
 
+// MARK: - PokemonRow
+struct PokemonRow: View {
+    let pokemon: PokemonEntity
+    @State private var isPressed = false
+    
+    var body: some View {
+        HStack {
+            AsyncImage(url: URL(string: pokemon.imageUrl ?? "")) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .interpolation(.medium)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                        .background(Color.white)
+                        .scaleEffect(isPressed ? 1.1 : 1.0)
+                case .failure(_):
+                    Image(systemName: "photo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                case .empty:
+                    ProgressView()
+                        .frame(width: 80, height: 80)
+                @unknown default:
+                    EmptyView()
+                        .frame(width: 80, height: 80)
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("#\(pokemon.id)")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    
+                    if pokemon.isFavorite {
+                        Image(systemName: "star.fill")
+                            .foregroundColor(.yellow)
+                            .rotationEffect(.degrees(isPressed ? 360 : 0))
+                    }
+                }
+                
+                Text(pokemon.name?.capitalizingFirstLetter() ?? "Unknown")
+                    .font(.headline)
+                
+                if let types = pokemon.types as? [String] {
+                    HStack {
+                        ForEach(types, id: \.self) { type in
+                            Text(type.capitalizingFirstLetter())
+                                .font(.subheadline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(type.typeColor)
+                                .cornerRadius(10)
+                                .scaleEffect(isPressed ? 1.05 : 1.0)
+                        }
+                    }
+                }
+            }
+            .padding(.leading, 8)
+        }
+        .padding(.vertical, 4)
+        .onLongPressGesture {
+            withAnimation(.spring()) {
+                isPressed.toggle()
+            }
+        }
+    }
+}
 
-// Extension pour avoir la première lettre majuscule
+// MARK: - String Extension
 extension String {
     func capitalizingFirstLetter() -> String {
-        return self.prefix(1).uppercased() + self.dropFirst().lowercased()
+        return prefix(1).uppercased() + dropFirst().lowercased()
     }
 }
