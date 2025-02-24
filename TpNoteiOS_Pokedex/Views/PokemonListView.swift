@@ -188,6 +188,17 @@ struct PokemonListView: View {
                     )
                 }
                 .overlay(loadingOverlay)
+                .onAppear {
+                    // Réinitialiser le badge de notification lors de l'ouverture de l'app
+                    NotificationManager.shared.resetBadge()
+                    
+                    // Vérifier et charger les Pokémon si nécessaire
+                    Task {
+                        if pokemons.isEmpty {
+                            await loadPokemons()
+                        }
+                    }
+                }
             }
         }
         
@@ -420,56 +431,6 @@ struct PokemonRow: View {
         .onChange(of: pokemon.isFavorite) { newValue in
             isFavorite = newValue
         }
-    }
-}
-
-struct SettingsView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var isDarkMode: Bool
-    @Binding var pokemonLimit: Int
-    
-    private let limitOptions = [151, 251, 386, 493, 649, 721, 809, 898, 1025]
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Apparence")) {
-                    Toggle("Mode sombre", isOn: $isDarkMode)
-                }
-                
-                Section(header: Text("Données")) {
-                    Picker("Nombre de Pokémon", selection: $pokemonLimit) {
-                        ForEach(limitOptions, id: \.self) { limit in
-                            Text("\(limit) Pokémon").tag(limit)
-                        }
-                    }
-                }
-                
-                Section(header: Text("À propos des limites")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("151 : Génération 1")
-                        Text("251 : Génération 2")
-                        Text("386 : Génération 3")
-                        Text("493 : Génération 4")
-                        Text("649 : Génération 5")
-                        Text("721 : Génération 6")
-                        Text("809 : Génération 7")
-                        Text("898 : Génération 8")
-                        Text("1025 : Génération 9")
-                    }
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-            }
-            .navigationTitle("Paramètres")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                Button("Fermer") {
-                    dismiss()
-                }
-            }
-        }
-        .presentationDetents([.medium, .large])
     }
 }
 
