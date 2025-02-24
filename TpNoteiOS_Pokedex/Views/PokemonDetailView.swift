@@ -47,6 +47,23 @@ struct PokemonDetailView: View {
         return 0
     }
     
+    private func getTypeGradient() -> LinearGradient {
+        guard let types = pokemon.types as? [String] else {
+            return LinearGradient(
+                gradient: Gradient(colors: [Color.gray.opacity(0.3)]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+        
+        let colors = types.map { $0.typeColor.opacity(0.6) } // Ajout d'une opacité
+        
+        return LinearGradient(
+            gradient: Gradient(colors: colors),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
     
     var body: some View {
         NavigationView {
@@ -62,7 +79,6 @@ struct PokemonDetailView: View {
                                     .interpolation(.medium)
                                     .aspectRatio(contentMode: .fit)
                                     .frame(height: isEnlarged ? 300 : 200)
-                                    .background(Color.white)
                                     .scaleEffect(isEnlarged ? 1.2 : 1)
                                     .rotationEffect(.degrees(appearAnimation ? 0 : 360))
                                     .offset(x: !slideAnimation ? UIScreen.main.bounds.width :
@@ -126,11 +142,12 @@ struct PokemonDetailView: View {
                         .offset(y: slideAnimation ? 0 : 50)
                     }
                     .padding()
-                    .background(Color.gray.opacity(0.1))
+                    .background(Color.white.opacity(0.8))
                     .cornerRadius(15)
                 }
                 .padding()
             }
+            .background(getTypeGradient())
             .navigationTitle(pokemon.name?.capitalizingFirstLetter() ?? "Détails")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -177,10 +194,11 @@ struct StatRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .foregroundColor(.secondary)
+                .foregroundColor(.black.opacity(0.7)) // Au lieu de .secondary
             Spacer()
             Text("\(value)")
                 .fontWeight(.bold)
+                .foregroundColor(.black)
         }
         .padding(.vertical, 4)
     }
