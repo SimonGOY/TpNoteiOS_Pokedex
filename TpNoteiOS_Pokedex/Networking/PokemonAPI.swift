@@ -68,22 +68,28 @@ struct PokemonModel: Identifiable, Codable {
 class PokemonAPI {
     static let shared = PokemonAPI()
     
-    func fetchPokemons() async throws -> [PokemonModel] {
+    func fetchPokemons(limit: Int = 151) async throws -> [PokemonModel] {
         // 1. Récupérer la liste basique
-        let url = URL(string: "https://pokeapi.co/api/v2/pokemon?limit=1025")!
+        let url = URL(string: "https://pokeapi.co/api/v2/pokemon?limit=\(limit)")!
         let (data, _) = try await URLSession.shared.data(from: url)
         let basicList = try JSONDecoder().decode(PokemonListResponse.self, from: data)
         
         // 2. Récupérer les détails pour chaque Pokémon
         var detailedPokemons: [PokemonModel] = []
         
-        for basicInfo in basicList.results {
-            if let detailedPokemon = try? await fetchPokemonDetails(from: basicInfo.url) {
+        let limitedResults = Array(basicList.results.prefix(limit))
+        
+        for basicInfo in limitedResults {
+            do {
+                let detailedPokemon = try await fetchPokemonDetails(from: basicInfo.url)
                 detailedPokemons.append(detailedPokemon)
+            } catch {
+                print("Error loading Pokemon \(basicInfo.name): \(error)")
+                continue
             }
         }
         
-        return detailedPokemons
+        return detailedPokemons.sorted { $0.id < $1.id }
     }
     
     private func fetchPokemonDetails(from url: String) async throws -> PokemonModel {

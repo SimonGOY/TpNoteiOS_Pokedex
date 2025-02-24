@@ -22,6 +22,9 @@ struct PokemonListView: View {
     @State private var cardScale: CGFloat = 0.8
     @State private var isFilterVisible = false
     @Environment(\.managedObjectContext) private var viewContext
+    @AppStorage("pokemonLimit") private var pokemonLimit: Int = 151
+    @AppStorage("isDarkMode") private var isDarkMode: Bool = false
+    @State private var showSettings = false
     
     private let api = PokemonAPI.shared
     
@@ -47,6 +50,7 @@ struct PokemonListView: View {
     init() {
         _pokemons = FetchRequest(
             sortDescriptors: [SortOption.id.descriptor],
+            predicate: NSPredicate(format: "id <= %d", 151),  // Limite par défaut
             animation: .default)
     }
     
@@ -94,9 +98,22 @@ struct PokemonListView: View {
         defer { isLoading = false }
         
         do {
-            let pokemonsFromAPI = try await api.fetchPokemons()
+            let pokemonsFromAPI = try await api.fetchPokemons(limit: pokemonLimit)
             
             await viewContext.perform {
+                // Supprimer les Pokémon au-delà de la nouvelle limite
+                let fetchRequest: NSFetchRequest<PokemonEntity> = PokemonEntity.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "id > %d", pokemonLimit)
+                
+                do {
+                    let pokemonsToDelete = try viewContext.fetch(fetchRequest)
+                    for pokemon in pokemonsToDelete {
+                        viewContext.delete(pokemon)
+                    }
+                } catch {
+                    print("Erreur lors de la suppression des Pokémon en surplus : \(error)")
+                }
+                
                 for pokemon in pokemonsFromAPI {
                     let fetchRequest: NSFetchRequest<PokemonEntity> = PokemonEntity.fetchRequest()
                     fetchRequest.predicate = NSPredicate(format: "id == %d", pokemon.id)
@@ -112,10 +129,13 @@ struct PokemonListView: View {
                             entity.id = Int64(pokemon.id)
                         }
                         
-                        entity.name = pokemon.name
-                        entity.imageUrl = pokemon.imageURL
-                        entity.types = pokemon.types as NSArray
-                        entity.stats = pokemon.stats as NSDictionary
+                        // Ne pas écraser les favoris existants
+                        if entity.name != pokemon.name || entity.imageUrl == nil {
+                            entity.name = pokemon.name
+                            entity.imageUrl = pokemon.imageURL
+                            entity.types = pokemon.types as NSArray
+                            entity.stats = pokemon.stats as NSDictionary
+                        }
                     } catch {
                         print("Error updating pokemon \(pokemon.id): \(error)")
                     }
@@ -128,149 +148,196 @@ struct PokemonListView: View {
         }
     }
     
-    // MARK: - Body
     var body: some View {
-        NavigationView {
-            VStack {
-                // Animated Filter Section
+            NavigationView {
                 VStack {
-                    HStack {
-                        Picker("Trier par", selection: $sortOption.animation()) {
-                            Text("ID").tag(SortOption.id)
-                            Text("Nom").tag(SortOption.name)
-                            Text("Favoris").tag(SortOption.favorites)
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                        .transition(.move(edge: .top))
-                        
-                        // Type Filter Menu
-                        Menu {
-                            Button {
-                                withAnimation(.spring()) {
-                                    selectedType = nil
-                                }
-                            } label: {
-                                HStack {
-                                    Text("Tous les types")
-                                        .foregroundColor(.primary)
-                                    if selectedType == nil {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                            
-                            ForEach(availableTypes, id: \.self) { type in
-                                Button {
-                                    withAnimation(.spring()) {
-                                        selectedType = type
-                                    }
-                                } label: {
-                                    HStack {
-                                        Text(type.capitalizingFirstLetter())
-                                            .foregroundColor(.white)
-                                        if selectedType == type {
-                                            Image(systemName: "checkmark")
-                                        }
-                                    }
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                Image(systemName: "tag.fill")
-                                Text(selectedType?.capitalizingFirstLetter() ?? "Tous les types")
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(selectedType?.typeColor ?? Color.gray.opacity(0.2))
-                            .cornerRadius(10)
-                            .scaleEffect(cardScale)
-                            .onAppear {
-                                withAnimation(.spring()) {
-                                    cardScale = 1.0
-                                }
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                    .shadow(radius: 5)
-                    .padding(.horizontal)
-                    .offset(y: filterMenuOffset)
-                    .onAppear {
-                        withAnimation(.spring()) {
-                            filterMenuOffset = 0
-                            isFilterVisible = true
-                        }
-                    }
+                    filterSection
+                    pokemonList
                 }
-                
-                // Animated Pokemon List
-                List {
-                    ForEach(filteredPokemons, id: \.id) { pokemon in
-                        Button {
-                            selectedPokemon = pokemon
-                        } label: {
-                            PokemonRow(pokemon: pokemon)
-                                .opacity(animateList ? 1 : 0)
-                                .offset(x: animateList ? 0 : -50)
-                                .animation(.spring().delay(Double(filteredPokemons.firstIndex(of: pokemon) ?? 0) * 0.05),
-                                         value: animateList)
-                        }
-                    }
+                .preferredColorScheme(isDarkMode ? .dark : .light)
+                .navigationTitle("Pokédex")
+                .toolbar {
+                    toolbarContent
                 }
-                .listStyle(PlainListStyle())
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-                .searchable(text: $searchText.animation(), prompt: "Chercher Pokémon...")
-                .onChange(of: sortOption) { newValue in
-                    withAnimation(.spring()) {
-                        animateList = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            withAnimation(.spring()) {
-                                animateList = true
-                            }
-                        }
-                    }
-                }
-                .onChange(of: selectedType) { _ in
-                    withAnimation(.spring()) {
-                        animateList = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            withAnimation(.spring()) {
-                                animateList = true
-                            }
-                        }
-                    }
-                }
-                .onAppear {
-                    withAnimation(.spring().delay(0.3)) {
-                        animateList = true
-                    }
-                }
-            }
-            .navigationTitle("Pokédex")
-            .toolbar {
-                Button("Refresh") {
+                .onChange(of: pokemonLimit) { _ in
+                    // Mettre à jour la FetchRequest
+                    let predicate = NSPredicate(format: "id <= %d", pokemonLimit)
+                    pokemons.nsPredicate = predicate
+                    
+                    // Recharger les données depuis l'API
                     Task {
                         await loadPokemons()
                     }
                 }
+                .sheet(item: $selectedPokemon) { pokemon in
+                    PokemonDetailView(
+                        pokemon: pokemon,
+                        isFavorite: Binding(
+                            get: { pokemon.isFavorite },
+                            set: { newValue in
+                                pokemon.isFavorite = newValue
+                                try? viewContext.save()
+                            }
+                        )
+                    )
+                }
+                .sheet(isPresented: $showSettings) {
+                    SettingsView(
+                        isDarkMode: $isDarkMode,
+                        pokemonLimit: $pokemonLimit
+                    )
+                }
+                .overlay(loadingOverlay)
             }
-            .sheet(item: $selectedPokemon) { pokemon in
-                PokemonDetailView(pokemon: pokemon)
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
-                    .interactiveDismissDisabled(false)
+        }
+        
+    private var filterSection: some View {
+            VStack {
+                HStack {
+                    Picker("Trier par", selection: $sortOption.animation()) {
+                        Text("ID").tag(SortOption.id)
+                        Text("Nom").tag(SortOption.name)
+                        Text("Favoris").tag(SortOption.favorites)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .transition(.move(edge: .top))
+                    
+                    typeFilterMenu
+                }
+                .padding()
+                .background(isDarkMode ? Color.black : Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+                .shadow(radius: 5)
+                .padding(.horizontal)
+                .offset(y: filterMenuOffset)
+                .onAppear {
+                    withAnimation(.spring()) {
+                        filterMenuOffset = 0
+                        isFilterVisible = true
+                    }
+                }
             }
-            .overlay(Group {
+        }
+        
+        private var typeFilterMenu: some View {
+            Menu {
+                Button {
+                    withAnimation(.spring()) {
+                        selectedType = nil
+                    }
+                } label: {
+                    HStack {
+                        Text("Tous les types")
+                            .foregroundColor(.primary)
+                        if selectedType == nil {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+                
+                ForEach(availableTypes, id: \.self) { type in
+                    Button {
+                        withAnimation(.spring()) {
+                            selectedType = type
+                        }
+                    } label: {
+                        HStack {
+                            Text(type.capitalizingFirstLetter())
+                                .foregroundColor(.white)
+                            if selectedType == type {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "tag.fill")
+                    Text(selectedType?.capitalizingFirstLetter() ?? "Tous les types")
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(selectedType?.typeColor ?? Color.gray.opacity(0.2))
+                .cornerRadius(10)
+                .scaleEffect(cardScale)
+                .onAppear {
+                    withAnimation(.spring()) {
+                        cardScale = 1.0
+                    }
+                }
+            }
+        }
+        
+        private var pokemonList: some View {
+            List {
+                ForEach(filteredPokemons, id: \.id) { pokemon in
+                    Button {
+                        selectedPokemon = pokemon
+                    } label: {
+                        PokemonRow(pokemon: pokemon)
+                            .opacity(animateList ? 1 : 0)
+                            .offset(x: animateList ? 0 : -50)
+                            .animation(.spring().delay(Double(filteredPokemons.firstIndex(of: pokemon) ?? 0) * 0.05),
+                                     value: animateList)
+                    }
+                }
+            }
+            .listStyle(PlainListStyle())
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .searchable(text: $searchText.animation(), prompt: "Chercher Pokémon...")
+            .onChange(of: sortOption) { _ in
+                animationToggle()
+            }
+            .onChange(of: selectedType) { _ in
+                animationToggle()
+            }
+            .onAppear {
+                withAnimation(.spring().delay(0.3)) {
+                    animateList = true
+                }
+            }
+        }
+        
+        private var toolbarContent: some ToolbarContent {
+            Group {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack {
+                        Button {
+                            showSettings = true
+                        } label: {
+                            Image(systemName: "gear")
+                        }
+                        
+                        Button("Refresh") {
+                            Task {
+                                await loadPokemons()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        private var loadingOverlay: some View {
+            Group {
                 if isLoading {
                     ProgressView()
                 }
-            })
+            }
         }
-    }
+        
+        private func animationToggle() {
+            withAnimation(.spring()) {
+                animateList = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.spring()) {
+                        animateList = true
+                    }
+                }
+            }
+        }
 }
 
 // MARK: - PokemonRow
@@ -288,7 +355,6 @@ struct PokemonRow: View {
                         .interpolation(.medium)
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 80, height: 80)
-                        .background(Color.white)
                         .scaleEffect(isPressed ? 1.1 : 1.0)
                 case .failure(_):
                     Image(systemName: "photo")
@@ -343,6 +409,56 @@ struct PokemonRow: View {
                 isPressed.toggle()
             }
         }
+    }
+}
+
+struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var isDarkMode: Bool
+    @Binding var pokemonLimit: Int
+    
+    private let limitOptions = [151, 251, 386, 493, 649, 721, 809, 898, 1025]
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Apparence")) {
+                    Toggle("Mode sombre", isOn: $isDarkMode)
+                }
+                
+                Section(header: Text("Données")) {
+                    Picker("Nombre de Pokémon", selection: $pokemonLimit) {
+                        ForEach(limitOptions, id: \.self) { limit in
+                            Text("\(limit) Pokémon").tag(limit)
+                        }
+                    }
+                }
+                
+                Section(header: Text("À propos des limites")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("151 : Génération 1")
+                        Text("251 : Génération 2")
+                        Text("386 : Génération 3")
+                        Text("493 : Génération 4")
+                        Text("649 : Génération 5")
+                        Text("721 : Génération 6")
+                        Text("809 : Génération 7")
+                        Text("898 : Génération 8")
+                        Text("1025 : Génération 9")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+            }
+            .navigationTitle("Paramètres")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                Button("Fermer") {
+                    dismiss()
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 

@@ -1,26 +1,26 @@
-    //
-    //  PokemonDetailView.swift
-    //  TpNoteiOS_Pokedex
-    //
-    //  Created by Simon GOY on 2/17/25.
-    //
+//
+//  PokemonDetailView.swift
+//  TpNoteiOS_Pokedex
+//
+//  Created by Simon GOY on 2/17/25.
+//
 
-    import SwiftUI
+import SwiftUI
 
 struct PokemonDetailView: View {
     let pokemon: PokemonEntity
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
-    @State private var isFavorite: Bool
+    @Binding private var isFavorite: Bool
     @State private var isEnlarged = false
     @State private var appearAnimation = false
     @State private var rotationAngle = 360.0
     @State private var slideAnimation = false
     @State private var isLeaving = false
     
-    init(pokemon: PokemonEntity) {
+    init(pokemon: PokemonEntity, isFavorite: Binding<Bool>) {
         self.pokemon = pokemon
-        _isFavorite = State(initialValue: pokemon.isFavorite)
+        self._isFavorite = isFavorite
     }
     
     private func toggleFavorite() {
