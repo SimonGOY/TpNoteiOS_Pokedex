@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2E2620FD2D6CA7560010F1C3 /* PokemonBattleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2620FC2D6CA7560010F1C3 /* PokemonBattleView.swift */; };
+		2E2621002D6CA7D10010F1C3 /* RandomPokemonFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2620FF2D6CA7D10010F1C3 /* RandomPokemonFinder.swift */; };
+		2E2621022D6CAC430010F1C3 /* NotificationExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2621012D6CAC430010F1C3 /* NotificationExtensions.swift */; };
 		2E4F45FA2D637ECC00896709 /* PokemonDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E4F45F92D637ECC00896709 /* PokemonDetailView.swift */; };
 		2ED02EAD2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02EAC2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift */; };
 		2ED02EAF2D632D9700A18268 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02EAE2D632D9700A18268 /* ContentView.swift */; };
@@ -21,6 +24,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2E2620FC2D6CA7560010F1C3 /* PokemonBattleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokemonBattleView.swift; sourceTree = "<group>"; };
+		2E2620FF2D6CA7D10010F1C3 /* RandomPokemonFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomPokemonFinder.swift; sourceTree = "<group>"; };
+		2E2621012D6CAC430010F1C3 /* NotificationExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationExtensions.swift; sourceTree = "<group>"; };
 		2E4F45F92D637ECC00896709 /* PokemonDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokemonDetailView.swift; sourceTree = "<group>"; };
 		2ED02EA92D632D9700A18268 /* TpNoteiOS_Pokedex.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TpNoteiOS_Pokedex.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2ED02EAC2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TpNoteiOS_PokedexApp.swift; sourceTree = "<group>"; };
@@ -46,6 +52,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		2E2620FE2D6CA7C50010F1C3 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				2E2620FF2D6CA7D10010F1C3 /* RandomPokemonFinder.swift */,
+				2E2621012D6CAC430010F1C3 /* NotificationExtensions.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
 		2ED02EA02D632D9700A18268 = {
 			isa = PBXGroup;
 			children = (
@@ -65,6 +80,7 @@
 		2ED02EAB2D632D9700A18268 /* TpNoteiOS_Pokedex */ = {
 			isa = PBXGroup;
 			children = (
+				2E2620FE2D6CA7C50010F1C3 /* Utils */,
 				2ED02ED02D63493200A18268 /* Networking */,
 				2ED02ECC2D63406100A18268 /* Views */,
 				2ED02EC62D6334C200A18268 /* Models */,
@@ -108,6 +124,7 @@
 				2ED02EAE2D632D9700A18268 /* ContentView.swift */,
 				2ED02ECD2D63406E00A18268 /* PokemonListView.swift */,
 				2E4F45F92D637ECC00896709 /* PokemonDetailView.swift */,
+				2E2620FC2D6CA7560010F1C3 /* PokemonBattleView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -194,10 +211,13 @@
 				2ED02EC82D6334D000A18268 /* Pokemon.swift in Sources */,
 				2E4F45FA2D637ECC00896709 /* PokemonDetailView.swift in Sources */,
 				2ED02EB62D632D9800A18268 /* Persistence.swift in Sources */,
+				2E2621002D6CA7D10010F1C3 /* RandomPokemonFinder.swift in Sources */,
 				2ED02EAF2D632D9700A18268 /* ContentView.swift in Sources */,
 				2ED02ECB2D63352500A18268 /* PokemonAPI.swift in Sources */,
+				2E2620FD2D6CA7560010F1C3 /* PokemonBattleView.swift in Sources */,
 				2ED02EB92D632D9800A18268 /* TpNoteiOS_Pokedex.xcdatamodeld in Sources */,
 				2ED02EC02D632E4D00A18268 /* CoreDataManager.swift in Sources */,
+				2E2621022D6CAC430010F1C3 /* NotificationExtensions.swift in Sources */,
 				2ED02EAD2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

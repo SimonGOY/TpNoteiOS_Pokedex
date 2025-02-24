@@ -17,6 +17,9 @@ struct PokemonDetailView: View {
     @State private var rotationAngle = 360.0
     @State private var slideAnimation = false
     @State private var isLeaving = false
+    @State private var showBattle = false
+    @State private var opponentPokemon: PokemonEntity?
+    @State private var isFindingOpponent = false
     
     init(pokemon: PokemonEntity, isFavorite: Binding<Bool>) {
         self.pokemon = pokemon
@@ -63,6 +66,21 @@ struct PokemonDetailView: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+    
+    private func findRandomOpponent() {
+        isFindingOpponent = true
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if let randomPokemon = RandomPokemonFinder.getRandomPokemon(excluding: pokemon.id, context: viewContext) {
+                self.opponentPokemon = randomPokemon
+                self.showBattle = true
+            } else {
+                print("Aucun Pokémon adversaire trouvé")
+            }
+            
+            isFindingOpponent = false
+        }
     }
     
     var body: some View {
@@ -122,6 +140,34 @@ struct PokemonDetailView: View {
                         .offset(y: slideAnimation ? 0 : 50)
                     }
                     
+                    // Bouton de combat
+                    Button(action: findRandomOpponent) {
+                        HStack {
+                            Image(systemName: "bolt.fill")
+                                .foregroundColor(.white)
+                            
+                            Text(isFindingOpponent ? "Recherche d'un adversaire..." : "Lancer un combat")
+                                .foregroundColor(.white)
+                                .font(.headline)
+                                .padding(.horizontal)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.red, Color.orange]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .cornerRadius(15)
+                        .shadow(radius: 5)
+                        .opacity(slideAnimation ? 1 : 0)
+                        .offset(y: slideAnimation ? 0 : 50)
+                    }
+                    .disabled(isFindingOpponent)
+                    .padding(.horizontal)
+                    
                     // Stats with animation
                     VStack(alignment: .leading, spacing: 15) {
                         Text("Statistiques")
@@ -155,7 +201,6 @@ struct PokemonDetailView: View {
                     Button("Fermer") {
                         withAnimation(.easeInOut(duration: 0.5)) {
                             isLeaving = true
-                            // Supprimez cette ligne : slideAnimation = false
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                             dismiss()
@@ -180,6 +225,28 @@ struct PokemonDetailView: View {
                     }
                     withAnimation(.easeInOut(duration: 0.7)) {
                         slideAnimation = true
+                    }
+                }
+                
+                // Observer les notifications pour les nouveaux combats
+                NotificationCenter.default.addObserver(forName: .newBattleRequested, object: nil, queue: .main) { _ in
+                    findRandomOpponent()
+                }
+                
+                NotificationCenter.default.addObserver(forName: .newBattleWithOpponent, object: nil, queue: .main) { notification in
+                    if let userInfo = notification.userInfo,
+                       let opponent = userInfo["opponent"] as? PokemonEntity {
+                        self.opponentPokemon = opponent
+                        self.showBattle = true
+                    } else {
+                        findRandomOpponent()
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $showBattle) {
+                if let opponent = opponentPokemon {
+                    NavigationView {
+                        PokemonBattleView(playerPokemon: pokemon, opponentPokemon: opponent)
                     }
                 }
             }
