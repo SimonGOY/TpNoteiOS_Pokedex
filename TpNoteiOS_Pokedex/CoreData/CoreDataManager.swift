@@ -54,15 +54,24 @@ class CoreDataManager {
         entity.name = pokemon.name
         entity.imageUrl = pokemon.imageUrl
         entity.types = pokemon.types as NSArray
-        entity.stats = [:] as NSObject // Placeholder pour les stats
+        
+        // Conversion directe des stats en NSDictionary
+        let statsDict = NSDictionary(dictionary: pokemon.stats)
+        entity.stats = statsDict
+        print("Saving stats for \(pokemon.name): \(statsDict)")
     }
+
     
     // Méthode pour mettre à jour un Pokémon existant dans CoreData
     private func updatePokemonEntity(_ existingPokemon: PokemonEntity, with pokemon: Pokemon) {
         existingPokemon.name = pokemon.name
         existingPokemon.imageUrl = pokemon.imageUrl
         existingPokemon.types = pokemon.types as NSArray
-        existingPokemon.stats = [:] as NSObject // Placeholder pour les stats
+        
+        // Conversion directe des stats en NSDictionary
+        let statsDict = NSDictionary(dictionary: pokemon.stats)
+        existingPokemon.stats = statsDict
+        print("Updating stats for \(pokemon.name): \(statsDict)")
     }
     
     // Sauvegarde le contexte CoreData et gère les erreurs

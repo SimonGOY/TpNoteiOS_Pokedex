@@ -29,6 +29,28 @@ struct PokemonDetailView: View {
         }
     }
     
+    private func getStatValue(_ statName: String) -> Int {
+        // Pour déboguer
+        print("Checking stats for \(statName)")
+        
+        if let statsObject = pokemon.stats {
+            // Convertir explicitement en Dictionary
+            let statsDict = statsObject as? [String: Any]
+            print("Stats dict: \(String(describing: statsDict))")
+            
+            if let value = statsDict?[statName] as? Int {
+                return value
+            }
+            
+            // Essayer la conversion en nombre si nécessaire
+            if let value = statsDict?[statName] as? NSNumber {
+                return value.intValue
+            }
+        }
+        
+        return 0
+    }
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -82,9 +104,14 @@ struct PokemonDetailView: View {
                             .fontWeight(.bold)
                             .padding(.bottom, 5)
                         
-                        StatRow(label: "Numéro", value: Int(pokemon.id))
-                        
-                        // Vous pouvez ajouter d'autres stats ici quand elles seront disponibles
+                        StatRow(label: "Numéro pokédex", value: Int(pokemon.id))
+                        StatBarRow(label: "HP", value: getStatValue("hp"), maxValue: 255)
+                        StatBarRow(label: "Attaque", value: getStatValue("attack"), maxValue: 255)
+                        StatBarRow(label: "Défense", value: getStatValue("defense"), maxValue: 255)
+                        StatBarRow(label: "Attaque Spéciale", value: getStatValue("special-attack"), maxValue: 255)
+                        StatBarRow(label: "Défense Spéciale", value: getStatValue("special-defense"), maxValue: 255)
+                        StatBarRow(label: "Vitesse", value: getStatValue("speed"), maxValue: 255)
+                        	
                     }
                     .padding()
                     .background(Color.gray.opacity(0.1))
@@ -127,6 +154,51 @@ struct StatRow: View {
                 .fontWeight(.bold)
         }
         .padding(.vertical, 4)
+    }
+}
+
+struct StatBarRow: View {
+    let label: String
+    let value: Int
+    let maxValue: Int
+    
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                Text(label)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text("\(value)")
+                    .fontWeight(.bold)
+            }
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .frame(width: geometry.size.width, height: 20)
+                        .opacity(0.3)
+                        .foregroundColor(.gray)
+                    
+                    Rectangle()
+                        .frame(width: geometry.size.width * CGFloat(value) / CGFloat(maxValue), height: 20)
+                        .foregroundColor(statColor(value: value))
+                }
+            }
+            .frame(height: 20)
+            .cornerRadius(10)
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func statColor(value: Int) -> Color {
+        let percentage = Double(value) / Double(maxValue)
+        switch percentage {
+        case 0.0..<0.2: return .red
+        case 0.2..<0.4: return .orange
+        case 0.4..<0.7: return .yellow
+        case 0.7..<0.9: return .green
+        default: return .blue
+        }
     }
 }
 

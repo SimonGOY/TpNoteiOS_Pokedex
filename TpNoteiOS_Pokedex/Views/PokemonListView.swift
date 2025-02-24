@@ -56,17 +56,16 @@ struct PokemonListView: View {
             case .name:
                 return (p1.name ?? "") < (p2.name ?? "")
             case .favorites:
-                if p1.isFavorite != p2.isFavorite {
-                    return p1.isFavorite && !p2.isFavorite
-                }
-                return p1.id < p2.id
+                return p1.id < p2.id  // Si on montre que les favoris, pas besoin de trier par favori
             }
         }
         
         return sorted.filter { pokemon in
+            // Filtre de recherche
             let matchesSearch = searchText.isEmpty ||
                 (pokemon.name?.localizedCaseInsensitiveContains(searchText) ?? false)
             
+            // Filtre de type
             let matchesType: Bool
             if let selectedType = selectedType,
                let pokemonTypes = pokemon.types as? [String] {
@@ -75,7 +74,10 @@ struct PokemonListView: View {
                 matchesType = true
             }
             
-            return matchesSearch && matchesType
+            // Filtre des favoris
+            let matchesFavorites = sortOption == .favorites ? pokemon.isFavorite : true
+            
+            return matchesSearch && matchesType && matchesFavorites
         }
     }
     
@@ -275,6 +277,7 @@ struct PokemonListView: View {
                         entity.name = pokemon.name
                         entity.imageUrl = pokemon.imageURL
                         entity.types = pokemon.types as NSArray
+                        entity.stats = pokemon.stats as NSDictionary
                     } catch {
                         print("Error updating pokemon \(pokemon.id): \(error)")
                     }
