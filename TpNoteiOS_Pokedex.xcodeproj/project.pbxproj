@@ -15,6 +15,7 @@
 		2E2621082D6CAE330010F1C3 /* DailyPokemonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2621072D6CAE330010F1C3 /* DailyPokemonView.swift */; };
 		2E26210A2D6CAE780010F1C3 /* NotificationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E2621092D6CAE780010F1C3 /* NotificationDelegate.swift */; };
 		2E26210C2D6CAF0B0010F1C3 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E26210B2D6CAF0B0010F1C3 /* SettingsView.swift */; };
+		2E26210E2D6CC5850010F1C3 /* PokemonQuizView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E26210D2D6CC5850010F1C3 /* PokemonQuizView.swift */; };
 		2E4F45FA2D637ECC00896709 /* PokemonDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E4F45F92D637ECC00896709 /* PokemonDetailView.swift */; };
 		2ED02EAD2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02EAC2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift */; };
 		2ED02EAF2D632D9700A18268 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED02EAE2D632D9700A18268 /* ContentView.swift */; };
@@ -37,6 +38,7 @@
 		2E2621072D6CAE330010F1C3 /* DailyPokemonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPokemonView.swift; sourceTree = "<group>"; };
 		2E2621092D6CAE780010F1C3 /* NotificationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDelegate.swift; sourceTree = "<group>"; };
 		2E26210B2D6CAF0B0010F1C3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		2E26210D2D6CC5850010F1C3 /* PokemonQuizView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokemonQuizView.swift; sourceTree = "<group>"; };
 		2E4F45F92D637ECC00896709 /* PokemonDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokemonDetailView.swift; sourceTree = "<group>"; };
 		2ED02EA92D632D9700A18268 /* TpNoteiOS_Pokedex.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TpNoteiOS_Pokedex.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2ED02EAC2D632D9700A18268 /* TpNoteiOS_PokedexApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TpNoteiOS_PokedexApp.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 				2E2620FC2D6CA7560010F1C3 /* PokemonBattleView.swift */,
 				2E2621072D6CAE330010F1C3 /* DailyPokemonView.swift */,
 				2E26210B2D6CAF0B0010F1C3 /* SettingsView.swift */,
+				2E26210D2D6CC5850010F1C3 /* PokemonQuizView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -223,6 +226,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2ED02ECE2D63406E00A18268 /* PokemonListView.swift in Sources */,
+				2E26210E2D6CC5850010F1C3 /* PokemonQuizView.swift in Sources */,
 				2E2621082D6CAE330010F1C3 /* DailyPokemonView.swift in Sources */,
 				2ED02EC82D6334D000A18268 /* Pokemon.swift in Sources */,
 				2E4F45FA2D637ECC00896709 /* PokemonDetailView.swift in Sources */,

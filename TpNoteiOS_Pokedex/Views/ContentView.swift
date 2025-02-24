@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var showDailyPokemon: Bool = false
     @State private var showSelectedPokemon: Bool = false
     @State private var selectedPokemon: PokemonEntity?
+    @State private var showQuiz: Bool = false  // Nouvelle ligne pour le quiz
     
     var body: some View {
         PokemonListView()
@@ -18,27 +19,42 @@ struct ContentView: View {
                 VStack {
                     Spacer()
                     
-                    Button(action: {
-                        showDailyPokemon = true
-                    }) {
-                        HStack {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 16, weight: .bold))
-                            
-                            Text("Pokémon du jour")
-                                .fontWeight(.semibold)
+                    HStack(spacing: 20) {
+                        Button(action: {
+                            showDailyPokemon = true
+                        }) {
+                            HStack {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 16, weight: .bold))
+                                
+                                Text("Pokémon du jour")
+                                    .fontWeight(.semibold)
+                            }
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(30)
+                            .shadow(radius: 5)
                         }
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(30)
-                        .shadow(radius: 5)
+                        
+                        // Bouton du quiz
+                        Button(action: {
+                            showQuiz = true
+                        }) {
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 30, weight: .bold))
+                                .foregroundColor(.blue)
+                                .shadow(radius: 3)
+                        }
                     }
                     .padding(.bottom, 30)
                 }
             )
             .sheet(isPresented: $showDailyPokemon) {
                 DailyPokemonView()
+            }
+            .sheet(isPresented: $showQuiz) {
+                PokemonQuizView()
             }
             .sheet(item: $selectedPokemon) { pokemon in
                 PokemonDetailView(
@@ -53,7 +69,6 @@ struct ContentView: View {
                 )
             }
             .onAppear {
-                // Observer les notifications pour afficher le Pokémon du jour
                 setupNotificationObservers()
             }
     }

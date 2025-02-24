@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
@@ -18,8 +19,53 @@ struct SettingsView: View {
     @AppStorage("typeChangeSimulationEnabled") private var typeChangeSimulationEnabled: Bool = false
     
     @State private var showDailyPokemon: Bool = false
+    @State private var isRefreshing = false
     
     private let limitOptions = [151, 251, 386, 493, 649, 721, 809, 898, 1025]
+    
+    private func refreshPokemons() async {
+        // Appeler la méthode de rafraîchissement de PokemonListView
+        let api = PokemonAPI.shared
+        let viewContext = PersistenceController.shared.container.viewContext
+        
+        do {
+            let pokemonsFromAPI = try await api.fetchPokemons(limit: pokemonLimit)
+            
+            await viewContext.perform {
+                // Logique de mise à jour similaire à loadPokemons() dans PokemonListView
+                for pokemon in pokemonsFromAPI {
+                    let fetchRequest: NSFetchRequest<PokemonEntity> = PokemonEntity.fetchRequest()
+                    fetchRequest.predicate = NSPredicate(format: "id == %d", pokemon.id)
+                    
+                    do {
+                        let results = try viewContext.fetch(fetchRequest)
+                        let entity: PokemonEntity
+                        
+                        if let existingPokemon = results.first {
+                            entity = existingPokemon
+                        } else {
+                            entity = PokemonEntity(context: viewContext)
+                            entity.id = Int64(pokemon.id)
+                        }
+                        
+                        // Ne pas écraser les favoris existants
+                        if entity.name != pokemon.name || entity.imageUrl == nil {
+                            entity.name = pokemon.name
+                            entity.imageUrl = pokemon.imageURL
+                            entity.types = pokemon.types as NSArray
+                            entity.stats = pokemon.stats as NSDictionary
+                        }
+                    } catch {
+                        print("Error updating pokemon \(pokemon.id): \(error)")
+                    }
+                }
+                
+                try? viewContext.save()
+            }
+        } catch {
+            print("Error refreshing pokemons: \(error)")
+        }
+    }
     
     var body: some View {
         NavigationView {
@@ -34,6 +80,24 @@ struct SettingsView: View {
                             Text("\(limit) Pokémon").tag(limit)
                         }
                     }
+                    
+                    Button(action: {
+                        Task {
+                            isRefreshing = true
+                            await refreshPokemons()
+                            isRefreshing = false
+                        }
+                    }) {
+                        HStack {
+                            Text("Actualiser les Pokémon")
+                            if isRefreshing {
+                                ProgressView()
+                                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                                    .scaleEffect(0.8)
+                            }
+                        }
+                    }
+                    .disabled(isRefreshing)
                 }
                 
                 Section(header: Text("Notifications")) {

@@ -320,12 +320,6 @@ struct PokemonListView: View {
                         } label: {
                             Image(systemName: "gear")
                         }
-                        
-                        Button("Refresh") {
-                            Task {
-                                await loadPokemons()
-                            }
-                        }
                     }
                 }
             }
