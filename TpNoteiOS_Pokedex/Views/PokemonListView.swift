@@ -344,6 +344,14 @@ struct PokemonListView: View {
 struct PokemonRow: View {
     let pokemon: PokemonEntity
     @State private var isPressed = false
+    @Environment(\.managedObjectContext) private var viewContext
+    @State private var isFavorite: Bool
+    
+    init(pokemon: PokemonEntity) {
+        self.pokemon = pokemon
+        // Initialiser l'état avec la valeur actuelle
+        _isFavorite = State(initialValue: pokemon.isFavorite)
+    }
     
     var body: some View {
         HStack {
@@ -376,7 +384,7 @@ struct PokemonRow: View {
                         .font(.subheadline)
                         .foregroundColor(.gray)
                     
-                    if pokemon.isFavorite {
+                    if isFavorite {
                         Image(systemName: "star.fill")
                             .foregroundColor(.yellow)
                             .rotationEffect(.degrees(isPressed ? 360 : 0))
@@ -408,6 +416,9 @@ struct PokemonRow: View {
             withAnimation(.spring()) {
                 isPressed.toggle()
             }
+        }
+        .onChange(of: pokemon.isFavorite) { newValue in
+            isFavorite = newValue
         }
     }
 }
